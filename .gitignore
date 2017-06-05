@@ -1,0 +1,7 @@
+*.rpm
+*.log
+*.zip
+*.bz2
+*.tar
+.python-version
+test.py
