@@ -1,0 +1,4 @@
+#! /bin/bash
+
+git clone ssh://git@git.start-i.ru:6122/interfaces/core.git
+docker build --rm -t ioss/core .
