@@ -47,10 +47,10 @@ RUN yum -y update && \
 		    ../configure --prefix=${omniORB_path}/omniORB_install/ PYTHON=/root/.pyenv/versions/omniORB/bin/python --with-omniorb=${omniORB_path}/omniORB_install/ && \
 		    make && make install && \
 
-        cp ${omniORB_path}/omniORB.pth /root/.pyenv/versions/3.6.0/lib/python3.6/site-packages && \
-        mv ${omniORB_path}/omniORB.pth /root/.pyenv/versions/omniORB/lib/python3.6/site-packages && \
+        cp ${omniORB_path}/omniorb.pth /root/.pyenv/versions/3.6.0/lib/python3.6/site-packages && \
+        mv ${omniORB_path}/omniorb.pth /root/.pyenv/versions/omniORB/lib/python3.6/site-packages && \
     
-        echo 'export LD_LIBRARY_PATH="${omniORB_path}/lib:$LD_LIBRARY_PATH"' >> ~/.bash_profile && \
+        echo 'export LD_LIBRARY_PATH="${omniORB_path}/omniORB_install/lib"' >> ~/.bash_profile && \
     
         cd ${omniORB_path} && \
         mv /tmp/idl* . && \
