@@ -50,8 +50,6 @@ RUN yum -y update && \
         cp ${omniORB_path}/omniorb.pth /root/.pyenv/versions/3.6.0/lib/python3.6/site-packages && \
         mv ${omniORB_path}/omniorb.pth /root/.pyenv/versions/omniORB/lib/python3.6/site-packages && \
     
-        echo 'export LD_LIBRARY_PATH="${omniORB_path}/omniORB_install/lib"' >> ~/.bash_profile && \
-    
         cd ${omniORB_path} && \
         mv /tmp/idl* . && \
         tar xvfj idl.tar.bz2 && rm idl.tar.bz2" && \
@@ -60,5 +58,9 @@ RUN yum -y update && \
 
     yum clean packages && \
     rm -rf /tmp/* /var/tmp/*
+
+RUN echo 'export LD_LIBRARY_PATH="${omniORB_path}/omniORB_install/lib"' >> ~/.bash_profile && \
+    echo 'export PATH="${omniORB_path}/omniORB_install/bin:$PATH"' >> ~/.bash_profile && \
+    /bin/bash -c "source ~/.bash_profile"
 
 ENTRYPOINT /bin/bash
