@@ -1,10 +1,10 @@
-# Version: 0.0.1
+# Version: 0.1.0
 FROM centos
 MAINTAINER Vladimir Gerasimenko <vladworldss@yandex.ru>
 LABEL name="vladworldss/omniorb" \
       vendor="CentOS" \
       license="GPLv2" \
-      build-date="20170530"
+      build-date="20170626"
 
 ADD . /tmp/
 
