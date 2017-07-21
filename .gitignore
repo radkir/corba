@@ -1,7 +1,11 @@
+.idea
+__pycache__
 *.rpm
 *.log
 *.zip
 *.bz2
 *.tar
+*.tar.gz
 .python-version
+
 test.py

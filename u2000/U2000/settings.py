@@ -1,4 +1,4 @@
-from collections import namedtuple
+# coding: utf-8
 
 addr = '172.23.25.72:12001'
 login = 'corbanbi2'
