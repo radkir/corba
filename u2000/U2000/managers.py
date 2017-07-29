@@ -6,9 +6,13 @@
 import os
 from collections import namedtuple, OrderedDict, defaultdict
 import json
+
 import emsMgr
-from managedElementManager import ManagedElementMgr_I
 from equipment import EquipmentInventoryMgr_I
+import globaldefs
+from managedElementManager import ManagedElementMgr_I
+from multiLayerSubnetwork import MultiLayerSubnetworkMgr_I
+
 from template import _Mngr
 
 __author__     = "Vladimir Gerasimenko"
@@ -18,96 +22,82 @@ __maintainer__ = "Vladimir Gerasimenko"
 __email__      = "vladworldss@yandex.ru"
 
 
-def _get_data(self):
-    for req in self.requests.values():
-        self.session = self.new_session()
-        req.result.extend(self.call(req))
-
-
-def _dump_data(self):
-    for req in self.requests.values():
-        json_file = f'{req.method}.json'
-        req = [self.convert(x) for x in req.result]
-        with open(json_file, 'w') as output:
-            json.dump(req, output)
-
-
 class Ems(_Mngr):
+
+    _methods = ('getAllTopLevelSubnetworks', 'getAllTopLevelTopologicalLinks')
 
     def __init__(self):
         super().__init__()
-        _reqs = ('getAllTopLevelSubnetworks', 'getAllTopLevelTopologicalLinks')
-        for req in _reqs:
-            self.requests[req] = self.make_request(req, 0)
+        for meth in self._methods:
+            self.make_request(meth, True, 0)
 
-    def get_data(self):
-        _get_data(self)
-
-    def dump_data(self):
-        _dump_data(self)
-
-    def get_manager(self):
-        return self.session.getManager("EMS")
+    name = property(fget=lambda self: "EMS", doc='This interface is used to manage an EMS.')
 
 
 class ManagedElement(_Mngr):
 
+    _methods = ('getAllManagedElements',)
+
     def __init__(self):
         super().__init__()
-        _reqs = ('getAllManagedElements',)
-        for req in _reqs:
-            self.requests[req] = self.make_request(req, 0)
+        for meth in self._methods:
+            self.make_request(meth, True, 0)
 
-    def get_data(self):
-        _get_data(self)
+    name = property(fget=lambda self: "ManagedElement",
+                    doc='This interface is used to manage NEs and termination points (TPs), '
+                        'including NEs, ports, and cross-connections on NEs'
+                    )
 
-    def dump_data(self):
-        _dump_data(self)
-
-    def get_manager(self):
-        return self.session.getManager("ManagedElement")._narrow(ManagedElementMgr_I)
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(ManagedElementMgr_I)
 
 
 class EquipmentInventory(_Mngr):
 
-    def __init__(self, all_managed_element_names):
+
+    def __init__(self, all_managed_element_names=None):
         super().__init__()
-        self.all_managed_element_names = {str(x.name): x for x in all_managed_element_names}
-        self.all_equipment = defaultdict(list)
-        self.all_equipment_names = defaultdict(list)
-        self.all_supported_ptps = defaultdict(list)
-        self.all_supported_ptps_names = defaultdict(list)
-        self.all_supporting_equipment = defaultdict(list)
+        self.all_managed_element_names = all_managed_element_names
 
-        # связываем источник имен и куда будем выгружать результат
-        Bind = namedtuple('Bind', ('source', 'destination'))
-        self.requests = OrderedDict(
-            {'getAllEquipment': Bind(self.all_managed_element_names, self.all_equipment),
-             'getAllEquipmentNames': Bind(self.all_managed_element_names, self.all_equipment_names),
-             'getAllSupportedPTPs': Bind(self.all_equipment_names, self.all_supported_ptps),
-             'getAllSupportedPTPNames': Bind(self.all_equipment_names, self.all_supported_ptps_names),
-             'getAllSupportingEquipment': Bind(self.all_supported_ptps_names, self.all_supporting_equipment)
-             }
-        )
+    name = property(fget=lambda self: "EquipmentInventory",
+                    doc='This interface is used to manage resources, such as equipment, '
+                        'boards, and ports on boards'
+                    )
 
-    def get_manager(self):
-        return self.session.getManager("EquipmentInventory")._narrow(EquipmentInventoryMgr_I)
+    def getAllEquipment(self, end=None):
+        m = 'getAllEquipment'
+        for me_name in self.all_managed_element_names[:end]:
+            self.make_request(m, True, me_name, 0)
+        self.get_data(m)
 
-    def get_data(self):
-        for method, bind in self.requests.items():
-            self.new_session()
-            for name, obj in bind.source.items():
-                req = self.make_request(method, obj, 0)
-                result = self.call(req)
-                if not isinstance(obj, str):
-                    name = obj.name
-                bind.destination[name].append(result)
+    def getAllEquipmentNames(self, end=None):
+        m = 'getAllEquipmentNames'
+        for me_name in self.all_managed_element_names[:end]:
+            self.make_request(m, True, me_name, 0)
+        self.get_data(m)
 
-    def dump_data(self):
+    def getAllSupportedPTPNames(self, end=None):
+        m = 'getAllSupportedPTPNames'
+        for req in self.requests['getAllEquipmentNames'][:end]:
+            long_eq_names = (x for x in req.result if len(x)>3)
+            for name in long_eq_names:
+                self.make_request(m, True, name, 0)
+        self.get_data(m)
 
-        for meth, bind in self.requests.items():
-            json_file = f'{meth}.json'
-            for elem, req in bind.destination.items():
-                req = self.convert(req)
-            with open(json_file, 'w') as output:
-                json.dump(bind.destination, output)
+    def getAllSupportingEquipment(self, end=None):
+        m = 'getAllSupportingEquipment'
+        for req in self.requests['getAllSupportedPTPNames'][:end]:
+            for name in req.result:
+                self.make_request(m, False, name)
+        self.get_data(m)
+
+    def getAllEquipmentAdditionalInfo(self, end=None):
+        m = 'getAllEquipmentAdditionalInfo'
+        for name in self.all_managed_element_names[:end]:
+            self.make_request(m, False, name)
+        self.get_data(m)
+
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(EquipmentInventoryMgr_I)
