@@ -6,6 +6,7 @@
 import abc
 import os
 from collections import namedtuple, defaultdict
+from itertools import chain
 
 from omniORB import CORBA
 import CosNaming
@@ -125,6 +126,7 @@ class _Mngr(metaclass=abc.ABCMeta):
     """
     Class of interface CORBA NBI.
     """
+    __Request = namedtuple('Request', ('method', 'complex', 'params', 'result'))
 
     def __init__(self):
         self.session = _Session(login, pwd)
@@ -132,9 +134,23 @@ class _Mngr(metaclass=abc.ABCMeta):
         self.set_manager()
 
         self.requests = defaultdict(list)
+        self.bind = {}
+        self.set_bind()
 
     @abc.abstractmethod
     def name(self):
+        pass
+
+    @abc.abstractmethod
+    def methods(self):
+        pass
+
+    @abc.abstractmethod
+    def set_bind(self):
+        """
+        Метод устанавливает связку метода и исходных данных, 
+        которые ему будут передаваться.
+        """
         pass
 
     def set_manager(self):
@@ -142,7 +158,7 @@ class _Mngr(metaclass=abc.ABCMeta):
 
     # --------------------- Request  -----------------
     def make_request(self, method, complex, *params):
-        r = self.Request(method, complex, params)
+        r = self.__Request(method, complex, params, [])
         self.requests[method].append(r)
 
     def make_multilayer_requests(self):
@@ -150,28 +166,19 @@ class _Mngr(metaclass=abc.ABCMeta):
             requests = lambda: defaultdict(requests)
             self.requests = requests()
 
-    class Request(object):
-
-        __slots__ = ('method', 'complex', 'params', 'result')
-
-        def __init__(self, method, complex, params):
-            self.method = method
-            self.complex = complex
-            self.params = params
-            self.result = []
-
-        def __str__(self):
-            res = ''
-            for s in self.__slots__:
-                val = getattr(self, s)
-                res += f'\n{s}:{val}'
-            return res
+    def chain_request_result(self, method):
+        return chain(*(x.result for x in self.requests[method]))
 
     @staticmethod
     def make_holder_name(self, name, value):
         return globaldefs.NameAndStringValue_T(name=name, value=value)
 
     # --------------------- Get data methods ---------
+    def get_all_data(self):
+        for meth in self.methods:
+            self.bind[meth]()
+            self.get_data(meth)
+
     def get_data(self, method):
         for req in self.requests[method]:
             self.call(req)
@@ -181,7 +188,7 @@ class _Mngr(metaclass=abc.ABCMeta):
         Call of manager for get data.
 
         :param request: 
-        :param complex: указывает, возвращается ли 2 объекта: list, _objref_Iterator_I
+        :param complex: if it's True when return 2 objects: list, _objref_Iterator_I
         """
         try:
             self.set_manager()
@@ -194,11 +201,11 @@ class _Mngr(metaclass=abc.ABCMeta):
                 _list, _iter = res
                 res = tuple(self.iterator(_iter))
             else:
-                res = (res,)
-            if not request.result:
-                request.result.extend(res)
-            else:
-                raise Exception('\n\nResult не пустой!!!')
+                if not isinstance(res, (list, tuple)):
+                    res = (res,)
+            if request.result:
+                request.result = []
+            request.result.extend(res)
         finally:
             self.session.close()
 
@@ -226,6 +233,7 @@ class _Mngr(metaclass=abc.ABCMeta):
                     for x in req.result:
                         out.write(f'{x}\n')
                     out.write('\n')
+            self.requests[method] = []
 
     def make_data_folder(self):
         folder_name = f'{self.name.lower()}_data'
