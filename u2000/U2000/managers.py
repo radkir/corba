@@ -15,6 +15,7 @@ from managedElementManager import ManagedElementMgr_I
 from multiLayerSubnetwork import MultiLayerSubnetworkMgr_I
 import protection, protection__POA
 from maintenanceOps import MaintenanceMgr_I
+from trafficConditioningProfile import TCProfileMgr_I
 
 from template import _Mngr
 
@@ -216,3 +217,24 @@ class MaintenanceMgr(_Mngr):
                     names
                     )
             )
+
+
+class TCProfileMgr(_Mngr):
+    def __init__(self):
+        super().__init__()
+
+    methods = property(fget=lambda self: ('HW_getAllTCProfiles',))
+
+    name = property(
+        fget=lambda self: "TrafficConditioningProfile",
+        doc="""This interface is used to manage traffic policy profiles. 
+        Traffic policy profiles include port, Ethernet V-UNI ingress or egress,
+        PW, ATM, ATM COS mapping and DS domain mapping policy profiles. 
+        PTN equipment is supported"""
+    )
+
+    def set_bind(self):
+        for i, m in enumerate(self.methods):
+            if i == 0:
+                self.bind[m] = lambda m=m: self.make_request(m, True, 0)
+

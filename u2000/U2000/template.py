@@ -109,6 +109,9 @@ class _Session(object):
             self.close()
             raise Exception(e)
 
+    def get_supported_managers(self):
+        return self.ems_session.getSupportedManagers()
+
     def close(self):
         if self.ems_session:
             self.ems_session.endSession()
@@ -155,6 +158,8 @@ class _Mngr(metaclass=abc.ABCMeta):
         pass
 
     def set_manager(self):
+        if self.name not in self.session.get_supported_managers():
+            raise TypeError('This kind of manager is not supported in current broker')
         self.mgr = self.session.get_manager(self.name)
 
     # --------------------- Request  -----------------

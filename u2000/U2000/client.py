@@ -54,13 +54,19 @@ def maintenance_test():
     m.get_all_data()
     m.dump_data()
 
+def tc_profile_mgr_test():
+    m = TCProfileMgr()
+    m.get_all_data()
+    m.dump_data()
+
+
 if __name__ == '__main__':
 
     testst = list(x for x in globals() if x.endswith('_test'))
 
     for test in testst:
         try:
-            test()
+            globals()[test]()
         except Exception as ex:
             print(ex)
             print(f'Failed test {test.__name__}')
