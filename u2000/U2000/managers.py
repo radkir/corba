@@ -203,19 +203,16 @@ class MaintenanceMgr(_Mngr):
 
     @property
     def all_md_names(self):
-        return (x.name for x in self.chain_request_result('getAllMaintenanceDomains'))
+        for x in self.chain_request_result('getAllMaintenanceDomains'):
+            yield x.name
 
     def set_bind(self):
+        names = self.all_managed_element_names
         for i, m in enumerate(self.methods):
-            if i == 0:
-                self.bind[m] = lambda m=m: tuple(
-                    map(lambda name, m=m: self.make_request(m, True, name, 0),
-                        self.all_managed_element_names
-                        )
-                )
-            if i > 1:
-                self.bind[m] = lambda m=m: tuple(
-                    map(lambda name, m=m: self.make_request(m, True, name, 0),
-                        self.all_md_names
-                        )
-                )
+            if i > 0:
+                names = self.all_md_names
+            self.bind[m] = lambda names=names, m=m: tuple(
+                map(lambda name, m=m: self.make_request(m, True, name, 0),
+                    tuple(names)
+                    )
+            )
