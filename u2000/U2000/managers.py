@@ -193,7 +193,7 @@ class MaintenanceMgr(_Mngr):
 
     methods = property(fget=lambda self: ('getAllMaintenanceDomains',
                                           'getAllMaintenanceAssociations',
-                                          #'getAllMaintenancePoints'
+                                          'getAllMaintenancePoints'
                                           )
                        )
 
