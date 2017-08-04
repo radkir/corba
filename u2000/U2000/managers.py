@@ -16,6 +16,7 @@ from multiLayerSubnetwork import MultiLayerSubnetworkMgr_I
 import protection, protection__POA
 from maintenanceOps import MaintenanceMgr_I
 from trafficConditioningProfile import TCProfileMgr_I
+from HW_mstpInventory import HW_MSTPInventoryMgr_I
 
 from template import _Mngr
 
@@ -36,7 +37,7 @@ class Ems(_Mngr):
                                           'getAllTopLevelTopologicalLinks'  # 1
                                           )
                        )
-    name = property(fget=lambda self: "EMS",
+    name = property(fget=lambda self: 'EMS',
                     doc='This interface is used to manage an EMS.'
                     )
 
@@ -55,10 +56,12 @@ class ManagedElement(_Mngr):
                                           'getAllManagedElementNames'       # 1
                                           )
                        )
-    name = property(fget=lambda self: "ManagedElement",
-                    doc='This interface is used to manage NEs and termination points (TPs), '
-                        'including NEs, ports, and cross-connections on NEs'
-                    )
+    name = property(
+        fget=lambda self: 'ManagedElement',
+        doc='This interface is used to manage NEs and '
+            'termination points (TPs), including NEs, '
+            'ports, and cross-connections on NEs'
+    )
 
     def set_bind(self):
         for m in self.methods:
@@ -83,7 +86,7 @@ class EquipmentInventory(_Mngr):
                                           )
                        )
     
-    name = property(fget=lambda self: "EquipmentInventory",
+    name = property(fget=lambda self: 'EquipmentInventory',
                     doc='This interface is used to manage resources, '
                         'such as equipment, boards, and ports on boards'
                     )
@@ -130,7 +133,7 @@ class MultiLayerSubnetworkMgr(_Mngr):
                                           'getAllInternalTopologicalLinks'  # 1
                                           )
                        )
-    name = property(fget=lambda self: "MultiLayerSubnetwork",
+    name = property(fget=lambda self: 'MultiLayerSubnetwork',
                     doc='This interface is used to manage subnets.'
                     )
 
@@ -162,7 +165,7 @@ class ProtectionMgr(_Mngr):
                                           )
                        )
 
-    name = property(fget=lambda self: "Protection",
+    name = property(fget=lambda self: 'Protection',
                     doc='This interface is used to manage protection groups.'
                     )
 
@@ -188,6 +191,46 @@ class ProtectionMgr(_Mngr):
                 )
 
 
+# ------------------------------------------------------------------
+class HW_MSTPInventoryMgr(_Mngr):
+    def __init__(self, me_names=None, equip_names=None):
+        self.equipment_names = equip_names
+        super().__init__(me_names)
+
+    methods = property(
+        fget=lambda self: (
+            'getAllVBs',                      # 0
+            'getAllQosRules',                 # 1
+            'getAllFlows',                    # 2
+            'getAllLinkAggregationGroups',    # 3
+            'getAllSpanningTrees',            # 4
+            'getAllVLANs'                     # 5
+        )
+    )
+
+    name = property(fget=lambda self: 'CORBA_MSTP_INV',
+                    doc='This interface is used to manage MSTP inventories.'
+                    )
+
+    def set_bind(self):
+        names = self.all_managed_element_names
+        for i, m in enumerate(self.methods):
+            if i == 4:
+                names = self.equipment_names
+            elif i == 5:
+                names = self.chain_request_result('getAllVBs')
+            self.bind[m] = lambda names=names, m=m: tuple(
+                map(lambda name, m=m: self.make_request(m, True, name, 0),
+                    names
+                    )
+            )
+
+        def set_manager(self):
+            super().set_manager()
+            self.mgr = self.mgr._narrow(HW_MSTPInventoryMgr_I)
+
+
+# ------------------------------------------------------------------
 class MaintenanceMgr(_Mngr):
     def __init__(self, me_names=None):
         super().__init__(me_names)
@@ -198,8 +241,8 @@ class MaintenanceMgr(_Mngr):
                                           )
                        )
 
-    name = property(fget=lambda self: "Maintenance",
-                    doc='This interface is used to manage protection groups.'
+    name = property(fget=lambda self: 'Maintenance',
+                    doc='This interface is used to manage maintenance functions.'
                     )
 
     @property
@@ -219,6 +262,7 @@ class MaintenanceMgr(_Mngr):
             )
 
 
+# ------------------------------------------------------------------
 class TCProfileMgr(_Mngr):
     def __init__(self):
         super().__init__()
@@ -226,7 +270,7 @@ class TCProfileMgr(_Mngr):
     methods = property(fget=lambda self: ('HW_getAllTCProfiles',))
 
     name = property(
-        fget=lambda self: "TrafficConditioningProfile",
+        fget=lambda self: 'TrafficConditioningProfile',
         doc="""This interface is used to manage traffic policy profiles. 
         Traffic policy profiles include port, Ethernet V-UNI ingress or egress,
         PW, ATM, ATM COS mapping and DS domain mapping policy profiles. 

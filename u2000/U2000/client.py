@@ -3,7 +3,8 @@
 """
 Client U2000.
 """
-from managers import *
+import managers
+from data import me_names, equip_names, subnet_names
 
 __author__     = "Vladimir Gerasimenko"
 __copyright__  = "Copyright 2017, Vladimir Gerasimenko"
@@ -12,86 +13,50 @@ __maintainer__ = "Vladimir Gerasimenko"
 __email__      = "vladworldss@yandex.ru"
 
 
-
-me_names = ([globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'), globaldefs.NameAndStringValue_T(name='ManagedElement', value='3145733')],
-[globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'), globaldefs.NameAndStringValue_T(name='ManagedElement', value='3145736')],
-[globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'), globaldefs.NameAndStringValue_T(name='ManagedElement', value='3145737')],
-[globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'), globaldefs.NameAndStringValue_T(name='ManagedElement', value='3145738')],
-[globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'), globaldefs.NameAndStringValue_T(name='ManagedElement', value='3145740')])
-
-
-subnet_names = ([globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'),
-               globaldefs.NameAndStringValue_T(name='MultiLayerSubnetwork', value='1')],
-               )
-"""
-CORBA_MSTP_INV
-CORBA_MSTP_PRO
-CORBA_MSTP_SVC
-CORBA_MSTP_TD
-CORBA_VPN
-ControlPlane
-ELLManagement
-EMS
-EquipmentInventory
-FlowdomainManagement
-GuiCutThrough
-Maintenance
-ManagedElement
-MultiLayerSubnetwork
-PerformanceManagement
-Protection
-SecurityManagement
-TopoManagement
-TrafficConditioningProfile
-TrailNetworkProtection
-
-"""
+def run_test(MgrCls, *args):
+    m = MgrCls(*args)
+    m.get_all_data()
+    m.dump_data()
 
 
 def ems_test():
-    ems = Ems()
-    ems.get_all_data()
-    ems.dump_data()
+    run_test(managers.Ems)
+
 
 def managed_element_test():
-    mem = ManagedElement()
-    mem.get_all_data()
-    mem.dump_data()
+    run_test(managers.ManagedElement)
+
 
 def equipment_inventory_test():
-    eq = EquipmentInventory(me_names)
-    eq.get_all_data()
-    eq.dump_data()
+    run_test(managers.EquipmentInventory, me_names)
+
 
 def multilayer_subnetwork():
-    mlayer = MultiLayerSubnetworkMgr(me_names, subnet_names)
-    mlayer.get_all_data()
-    mlayer.dump_data()
+    run_test(managers.MultiLayerSubnetworkMgr, me_names, subnet_names)
+
 
 def protection_test():
-    pr = ProtectionMgr(me_names)
-    pr.get_all_data()
-    pr.dump_data()
+    run_test(managers.ProtectionMgr, me_names)
+
 
 def maintenance_test():
-    m = MaintenanceMgr(me_names)
-    m.get_all_data()
-    m.dump_data()
+    run_test(managers.MaintenanceMgr, me_names)
+
 
 def tc_profile_mgr_test():
-    m = TCProfileMgr()
-    m.get_all_data()
-    m.dump_data()
+    run_test(managers.TCProfileMgr)
+
+
+def hw_mstp_inventory_test():
+    run_test(managers.HW_MSTPInventoryMgr, me_names, equip_names)
 
 
 if __name__ == '__main__':
-
     testst = list(x for x in globals() if x.endswith('_test'))
-
     for test in testst:
         try:
             globals()[test]()
         except Exception as ex:
             print(ex)
-            print(f'Failed test {test.__name__}')
+            print(f'Failed test {test}')
         continue
