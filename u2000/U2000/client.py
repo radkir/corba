@@ -51,6 +51,10 @@ def hw_mstp_inventory_test():
     run_test(managers.HW_MSTPInventoryMgr, me_names, equip_names)
 
 
+def hw_controlplanemgr():
+    run_test(managers.HW_controlPlaneMgr)
+
+
 if __name__ == '__main__':
     testst = list(x for x in globals() if x.endswith('_test'))
     for test in testst:

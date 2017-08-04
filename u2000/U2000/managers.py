@@ -17,6 +17,7 @@ import protection, protection__POA
 from maintenanceOps import MaintenanceMgr_I
 from trafficConditioningProfile import TCProfileMgr_I
 from HW_mstpInventory import HW_MSTPInventoryMgr_I
+from HW_controlPlane import HW_controlPlaneMgr_I
 
 from template import _Mngr
 
@@ -225,9 +226,9 @@ class HW_MSTPInventoryMgr(_Mngr):
                     )
             )
 
-        def set_manager(self):
-            super().set_manager()
-            self.mgr = self.mgr._narrow(HW_MSTPInventoryMgr_I)
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(HW_MSTPInventoryMgr_I)
 
 
 # ------------------------------------------------------------------
@@ -282,3 +283,33 @@ class TCProfileMgr(_Mngr):
             if i == 0:
                 self.bind[m] = lambda m=m: self.make_request(m, True, 0)
 
+
+# ------------------------------------------------------------------
+class HW_controlPlaneMgr(_Mngr):
+    def __init__(self):
+        super().__init__()
+
+    methods = property(fget=lambda self: ('getAllRoutingAreaNames',
+                                          'getAllSnppLinks'
+                                          )
+                       )
+
+    name = property(fget=lambda self: 'ControlPlane',
+                    doc="""This interface is used to query details of all 
+                    SNPP links in a routing area according to routing area name."""
+                    )
+
+    def set_bind(self):
+        for i, m in enumerate(self.methods):
+            if i == 0:
+                self.bind[m] = lambda m=m: self.make_request(m, False)
+            elif i == 1:
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        (x for x in self.chain_request_result('getAllRoutingAreaNames'))
+                        )
+                )
+
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(HW_controlPlaneMgr_I)
