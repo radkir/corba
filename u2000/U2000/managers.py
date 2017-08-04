@@ -213,6 +213,6 @@ class MaintenanceMgr(_Mngr):
                 names = self.all_md_names
             self.bind[m] = lambda names=names, m=m: tuple(
                 map(lambda name, m=m: self.make_request(m, True, name, 0),
-                    tuple(names)
+                    names
                     )
             )
