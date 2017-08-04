@@ -219,7 +219,3 @@ class MaintenanceMgr(_Mngr):
                         self.all_md_names
                         )
                 )
-
-    # def set_manager(self):
-    #     super().set_manager()
-    #     self.mgr = self.mgr._narrow(MaintenanceMgr_I)
