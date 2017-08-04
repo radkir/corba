@@ -14,6 +14,7 @@ import globaldefs
 from managedElementManager import ManagedElementMgr_I
 from multiLayerSubnetwork import MultiLayerSubnetworkMgr_I
 import protection, protection__POA
+from maintenanceOps import MaintenanceMgr_I
 
 from template import _Mngr
 
@@ -39,9 +40,8 @@ class Ems(_Mngr):
                     )
 
     def set_bind(self):
-        self.bind = {self.methods[0]: lambda: self.make_request(self.methods[0], True, 0),
-                     self.methods[1]: lambda: self.make_request(self.methods[0], True, 0),
-                     }
+        for m in self.methods:
+            self.bind[m] = lambda m=m: self.make_request(m, True, 0)
 
 
 # ------------------------------------------------------------------
@@ -60,9 +60,8 @@ class ManagedElement(_Mngr):
                     )
 
     def set_bind(self):
-        self.bind = {self.methods[0]: lambda: self.make_request(self.methods[0], True, 0),
-                     self.methods[1]: lambda: self.make_request(self.methods[1], True, 0)
-                     }
+        for m in self.methods:
+            self.bind[m] = lambda m=m: self.make_request(m, True, 0)
 
     def set_manager(self):
         super().set_manager()
@@ -72,9 +71,8 @@ class ManagedElement(_Mngr):
 # ------------------------------------------------------------------
 class EquipmentInventory(_Mngr):
 
-    def __init__(self, all_managed_element_names=None):
-        super().__init__()
-        self.all_managed_element_names = all_managed_element_names
+    def __init__(self, me_names=None):
+        super().__init__(me_names)
 
     methods = property(fget=lambda self: ('getAllEquipment',                # 0
                                           'getAllEquipmentNames',           # 1
@@ -96,38 +94,24 @@ class EquipmentInventory(_Mngr):
                 yield name
 
     def set_bind(self, *args, **kw):
-        self.bind = {
-            self.methods[0]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[0], True, name, 0),
-                    self.all_managed_element_names
+        for i, m in enumerate(self.methods):
+            names = self.all_managed_element_names
+            if i < 3:
+                if i == 2:
+                    names = self.long_equipment_names
+                self.bind[m] = lambda names=names, m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        names
+                        )
                 )
-            ),
-            self.methods[1]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[1], True, name, 0),
-                    self.all_managed_element_names
+            elif i in (3, 4):
+                if i == 3:
+                    names = self.chain_request_result('getAllSupportedPTPNames')
+                self.bind[m] = lambda names=names, m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, False, name),
+                        names
+                        )
                 )
-            ),
-            self.methods[2]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[2], True, name, 0),
-                    self.long_equipment_names
-                )
-            ),
-            self.methods[3]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[3], False, name),
-                    self.chain_request_result('getAllSupportedPTPNames')
-                )
-            ),
-            self.methods[4]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[4], False, name),
-                    self.all_managed_element_names
-                )
-            ),
-        }
 
     def set_manager(self):
         super().set_manager()
@@ -138,9 +122,8 @@ class EquipmentInventory(_Mngr):
 class MultiLayerSubnetworkMgr(_Mngr):
     
     def __init__(self, me_names=None, subnet_names=None):
-        super().__init__()
-        self.all_managed_element_names = me_names
         self.subnet_names = subnet_names
+        super().__init__(me_names)
 
     methods = property(fget=lambda self: ('getAllTopologicalLinks',         # 0
                                           'getAllInternalTopologicalLinks'  # 1
@@ -151,28 +134,21 @@ class MultiLayerSubnetworkMgr(_Mngr):
                     )
 
     def set_bind(self):
-        self.bind = {
-            self.methods[0]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[0], True, name, 0),
-                    self.subnet_names
-                )
-            ),
-            self.methods[1]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[1], True, name, 0),
-                    self.all_managed_element_names
-                )
-            ),
-
-        }
+        for i, m in enumerate(self.methods):
+            names = self.all_managed_element_names
+            if i == 0:
+                names = self.subnet_names
+            self.bind[m] = lambda names=names, m=m: tuple(
+                map(lambda name, m=m: self.make_request(m, True, name, 0),
+                    names
+                    )
+            )
 
 
 # ------------------------------------------------------------------
 class ProtectionMgr(_Mngr):
     def __init__(self, me_names=None):
-        super().__init__()
-        self.all_managed_element_names = me_names
+        super().__init__(me_names)
 
     methods = property(fget=lambda self: ('getAllProtectionGroups',         # 0
                                           'getAllWDMProtectionGroups',      # 1
@@ -184,58 +160,66 @@ class ProtectionMgr(_Mngr):
                                           'getAllProtectionSubnetworks'     # 7
                                           )
                        )
+
     name = property(fget=lambda self: "Protection",
                     doc='This interface is used to manage protection groups.'
                     )
 
     def set_bind(self):
-        self.bind = {
-            self.methods[0]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[0], True, name, 0),
-                    self.all_managed_element_names
+        for i, m in enumerate(self.methods):
+            if i in (0, 1, 2, 3, 6):
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        self.all_managed_element_names
+                        )
                 )
-            ),
-            self.methods[1]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[1], True, name, 0),
-                    self.all_managed_element_names
+            elif i in (4, 5):
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, False, name),
+                        self.all_managed_element_names
+                        )
                 )
-            ),
-            self.methods[2]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[2], True, name, 0),
-                    self.all_managed_element_names
+            elif i in (7, ):
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, 0),
+                        self.all_managed_element_names
+                        )
                 )
-            ),
-            self.methods[3]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[3], True, name, 0),
-                    self.all_managed_element_names
+
+
+class MaintenanceMgr(_Mngr):
+    def __init__(self, me_names=None):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('getAllMaintenanceDomains',
+                                          'getAllMaintenanceAssociations',
+                                          #'getAllMaintenancePoints'
+                                          )
+                       )
+
+    name = property(fget=lambda self: "Maintenance",
+                    doc='This interface is used to manage protection groups.'
+                    )
+
+    @property
+    def all_md_names(self):
+        return (x.name for x in self.chain_request_result('getAllMaintenanceDomains'))
+
+    def set_bind(self):
+        for i, m in enumerate(self.methods):
+            if i == 0:
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        self.all_managed_element_names
+                        )
                 )
-            ),
-            self.methods[4]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[4], False, name),
-                    self.all_managed_element_names
+            if i > 1:
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        self.all_md_names
+                        )
                 )
-            ),
-            self.methods[5]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[5], False, name),
-                    self.all_managed_element_names
-                )
-            ),
-            self.methods[6]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[6], True, name, 0),
-                    self.all_managed_element_names
-                )
-            ),
-            self.methods[7]: lambda: tuple(
-                map(
-                    lambda name: self.make_request(self.methods[7], True, 0),
-                    self.all_managed_element_names
-                )
-            ),
-        }
+
+    # def set_manager(self):
+    #     super().set_manager()
+    #     self.mgr = self.mgr._narrow(MaintenanceMgr_I)

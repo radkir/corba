@@ -128,12 +128,13 @@ class _Mngr(metaclass=abc.ABCMeta):
     """
     __Request = namedtuple('Request', ('method', 'complex', 'params', 'result'))
 
-    def __init__(self):
+    def __init__(self, all_managed_element_names=None, *args):
         self.session = _Session(login, pwd)
         self.mgr = None
         self.set_manager()
 
         self.requests = defaultdict(list)
+        self.all_managed_element_names = all_managed_element_names
         self.bind = {}
         self.set_bind()
 
@@ -177,9 +178,18 @@ class _Mngr(metaclass=abc.ABCMeta):
     def get_all_data(self):
         for meth in self.methods:
             self.bind[meth]()
-            self.get_data(meth)
+            try:
+                self.get_data(meth)
+            except Exception as ex:
+                print(f'\n\nGet data exception.'
+                      f'\nManager={self.name}, method={meth}.'
+                      f'\nException: {ex}\n\n'
+                      )
+            continue
 
     def get_data(self, method):
+        if not self.requests[method]:
+            raise Exception('Empty requests')
         for req in self.requests[method]:
             self.call(req)
 

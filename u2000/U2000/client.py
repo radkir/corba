@@ -40,7 +40,7 @@ def equipment_inventory_test():
     eq.dump_data()
 
 def multilayer_subnetwork():
-    mlayer = MultiLayerSubnetworkMgr(all_managed_element_names=me_names, subnet_names=subnet_names)
+    mlayer = MultiLayerSubnetworkMgr(me_names, subnet_names)
     mlayer.get_all_data()
     mlayer.dump_data()
 
@@ -49,19 +49,19 @@ def protection_test():
     pr.get_all_data()
     pr.dump_data()
 
+def maintenance_test():
+    m = MaintenanceMgr(me_names)
+    m.get_all_data()
+    m.dump_data()
 
 if __name__ == '__main__':
 
-    testst = (ems_test,
-             managed_element_test,
-             equipment_inventory_test,
-             multilayer_subnetwork,
-             protection_test,
-             )
+    testst = list(x for x in globals() if x.endswith('_test'))
 
     for test in testst:
         try:
             test()
-        except:
+        except Exception as ex:
+            print(ex)
             print(f'Failed test {test.__name__}')
-            continue
+        continue
