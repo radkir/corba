@@ -110,6 +110,28 @@ class _Session(object):
             raise Exception(e)
 
     def get_supported_managers(self):
+        """
+        CORBA_MSTP_INV
+        CORBA_MSTP_PRO
+        CORBA_MSTP_SVC
+        CORBA_MSTP_TD
+        CORBA_VPN
+        ControlPlane
+        ELLManagement
+        EMS
+        EquipmentInventory
+        FlowdomainManagement
+        GuiCutThrough
+        Maintenance
+        ManagedElement
+        MultiLayerSubnetwork
+        PerformanceManagement
+        Protection
+        SecurityManagement
+        TopoManagement
+        TrafficConditioningProfile
+        TrailNetworkProtection
+        """
         return self.ems_session.getSupportedManagers()
 
     def close(self):

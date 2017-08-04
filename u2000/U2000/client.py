@@ -23,6 +23,30 @@ me_names = ([globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'
 subnet_names = ([globaldefs.NameAndStringValue_T(name='EMS', value='Huawei/U2000RTN'),
                globaldefs.NameAndStringValue_T(name='MultiLayerSubnetwork', value='1')],
                )
+"""
+CORBA_MSTP_INV
+CORBA_MSTP_PRO
+CORBA_MSTP_SVC
+CORBA_MSTP_TD
+CORBA_VPN
+ControlPlane
+ELLManagement
+EMS
+EquipmentInventory
+FlowdomainManagement
+GuiCutThrough
+Maintenance
+ManagedElement
+MultiLayerSubnetwork
+PerformanceManagement
+Protection
+SecurityManagement
+TopoManagement
+TrafficConditioningProfile
+TrailNetworkProtection
+
+"""
+
 
 def ems_test():
     ems = Ems()
