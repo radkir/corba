@@ -22,45 +22,54 @@ def run_test(MgrCls, *args):
 def ems_test():
     run_test(managers.Ems)
 
+def equipment_inventory_test():
+    run_test(managers.EquipmentInventory, me_names)
 
 def managed_element_test():
     run_test(managers.ManagedElement)
 
-
-def equipment_inventory_test():
-    run_test(managers.EquipmentInventory, me_names)
-
-
 def multilayer_subnetwork():
     run_test(managers.MultiLayerSubnetworkMgr, me_names, subnet_names)
-
 
 def protection_test():
     run_test(managers.ProtectionMgr, me_names)
 
+def hw_mstp_inventory_test():
+    run_test(managers.HW_MSTPInventoryMgr, me_names, equip_names)
+
+def hw_mstpprotectionmgr_test():
+    run_test(managers.HW_MSTPProtectionMgr_I, me_names)
+
+def trafficdescriptormgr_test():
+    run_test(managers.TrafficDescriptorMgr_I, me_names)
+
+def hw_controlplanemgr_test():
+    run_test(managers.HW_controlPlaneMgr)
+
+def encapsulationlayerlinkmgr_test():
+    run_test(managers.EncapsulationLayerLinkMgr_I)
+
+def flowdomainmgr_test():
+    run_test(managers.FlowDomainMgr_I)
 
 def maintenance_test():
     run_test(managers.MaintenanceMgr, me_names)
 
-
 def tc_profile_mgr_test():
     run_test(managers.TCProfileMgr)
 
-
-def hw_mstp_inventory_test():
-    run_test(managers.HW_MSTPInventoryMgr, me_names, equip_names)
-
-
-def hw_controlplanemgr():
-    run_test(managers.HW_controlPlaneMgr)
+def trailntwprotmgr_test():
+    run_test(managers.TrailNtwProtMgr_I, me_names)
 
 
 if __name__ == '__main__':
     testst = list(x for x in globals() if x.endswith('_test'))
+    failed = []
     for test in testst:
         try:
             globals()[test]()
         except Exception as ex:
-            print(ex)
-            print(f'Failed test {test}')
+            failed.append((test, ex))
         continue
+    for f in failed:
+        print(f)

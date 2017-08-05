@@ -159,6 +159,8 @@ class _Mngr(metaclass=abc.ABCMeta):
         self.set_manager()
 
         self.requests = defaultdict(list)
+        # TODO: Этот здесь лишнее -
+        # TODO: вынести логику name, methods в конструктор
         self.all_managed_element_names = all_managed_element_names
         self.bind = {}
         self.set_bind()
@@ -241,6 +243,7 @@ class _Mngr(metaclass=abc.ABCMeta):
                 if not isinstance(res, (list, tuple)):
                     res = (res,)
             if request.result:
+                print(f'Clear old result of method={request.method}')
                 request.result = []
             request.result.extend(res)
         finally:

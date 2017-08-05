@@ -18,6 +18,8 @@ from maintenanceOps import MaintenanceMgr_I
 from trafficConditioningProfile import TCProfileMgr_I
 from HW_mstpInventory import HW_MSTPInventoryMgr_I
 from HW_controlPlane import HW_controlPlaneMgr_I
+from trailNtwProtection import TrailNtwProtMgr_I
+from encapsulationLayerLink import EncapsulationLayerLinkMgr_I
 
 from template import _Mngr
 
@@ -48,6 +50,57 @@ class Ems(_Mngr):
 
 
 # ------------------------------------------------------------------
+class EquipmentInventory(_Mngr):
+
+    def __init__(self, me_names=None):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('getAllEquipment',  # 0
+                                          'getAllEquipmentNames',  # 1
+                                          'getAllSupportedPTPNames',  # 2
+                                          'getAllSupportedPTPs',  # 3
+                                          'getAllSupportingEquipment',  # 4
+                                          'getAllEquipmentAdditionalInfo'  # 5
+                                          )
+                       )
+
+    name = property(fget=lambda self: 'EquipmentInventory',
+                    doc='This interface is used to manage resources, '
+                        'such as equipment, boards, and ports on boards'
+                    )
+
+    @property
+    def long_equipment_names(self):
+        for name in self.chain_request_result('getAllEquipmentNames'):
+            if len(name) > 3:
+                yield name
+
+    def set_bind(self, *args, **kw):
+        for i, m in enumerate(self.methods):
+            names = self.all_managed_element_names
+            if i < 4:
+                if i in (2, 3):
+                    names = self.long_equipment_names
+                self.bind[m] = lambda names=names, m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        names
+                        )
+                )
+            elif i in (4, 5):
+                if i == 4:
+                    names = self.chain_request_result('getAllSupportedPTPNames')
+                self.bind[m] = lambda names=names, m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, False, name),
+                        names
+                        )
+                )
+
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(EquipmentInventoryMgr_I)
+
+
+# ------------------------------------------------------------------
 class ManagedElement(_Mngr):
 
     def __init__(self):
@@ -55,6 +108,7 @@ class ManagedElement(_Mngr):
 
     methods = property(fget=lambda self: ('getAllManagedElements',          # 0
                                           'getAllManagedElementNames'       # 1
+
                                           )
                        )
     name = property(
@@ -74,56 +128,6 @@ class ManagedElement(_Mngr):
 
 
 # ------------------------------------------------------------------
-class EquipmentInventory(_Mngr):
-
-    def __init__(self, me_names=None):
-        super().__init__(me_names)
-
-    methods = property(fget=lambda self: ('getAllEquipment',                # 0
-                                          'getAllEquipmentNames',           # 1
-                                          'getAllSupportedPTPNames',        # 2
-                                          'getAllSupportingEquipment',      # 3
-                                          'getAllEquipmentAdditionalInfo'   # 4
-                                          )
-                       )
-    
-    name = property(fget=lambda self: 'EquipmentInventory',
-                    doc='This interface is used to manage resources, '
-                        'such as equipment, boards, and ports on boards'
-                    )
-
-    @property
-    def long_equipment_names(self):
-        for name in self.chain_request_result('getAllEquipmentNames'):
-            if len(name) > 3:
-                yield name
-
-    def set_bind(self, *args, **kw):
-        for i, m in enumerate(self.methods):
-            names = self.all_managed_element_names
-            if i < 3:
-                if i == 2:
-                    names = self.long_equipment_names
-                self.bind[m] = lambda names=names, m=m: tuple(
-                    map(lambda name, m=m: self.make_request(m, True, name, 0),
-                        names
-                        )
-                )
-            elif i in (3, 4):
-                if i == 3:
-                    names = self.chain_request_result('getAllSupportedPTPNames')
-                self.bind[m] = lambda names=names, m=m: tuple(
-                    map(lambda name, m=m: self.make_request(m, False, name),
-                        names
-                        )
-                )
-
-    def set_manager(self):
-        super().set_manager()
-        self.mgr = self.mgr._narrow(EquipmentInventoryMgr_I)
-
-
-# ------------------------------------------------------------------
 class MultiLayerSubnetworkMgr(_Mngr):
     
     def __init__(self, me_names=None, subnet_names=None):
@@ -131,7 +135,8 @@ class MultiLayerSubnetworkMgr(_Mngr):
         super().__init__(me_names)
 
     methods = property(fget=lambda self: ('getAllTopologicalLinks',         # 0
-                                          'getAllInternalTopologicalLinks'  # 1
+                                          'getAllManagedElements',          # 1
+                                          'getAllInternalTopologicalLinks'  # 2
                                           )
                        )
     name = property(fget=lambda self: 'MultiLayerSubnetwork',
@@ -141,7 +146,7 @@ class MultiLayerSubnetworkMgr(_Mngr):
     def set_bind(self):
         for i, m in enumerate(self.methods):
             names = self.all_managed_element_names
-            if i == 0:
+            if i < 2:
                 names = self.subnet_names
             self.bind[m] = lambda names=names, m=m: tuple(
                 map(lambda name, m=m: self.make_request(m, True, name, 0),
@@ -232,6 +237,138 @@ class HW_MSTPInventoryMgr(_Mngr):
 
 
 # ------------------------------------------------------------------
+class HW_MSTPProtectionMgr_I(_Mngr):
+    def __init__(self, me_names):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('getAllRPRNode',
+                                          'getAllAtmProtectGroup',
+                                          'getAllRPRLinkInfo'
+                                          )
+                       )
+
+    name = property(fget=lambda self: 'CORBA_MSTP_PRO',
+                    doc="""This interface is used to manage the MSTP protection."""
+                    )
+
+    def set_bind(self):
+        for m in self.methods:
+            self.bind[m] = lambda m=m: tuple(
+                map(lambda name, m=m: self.make_request(m, True, name, 0),
+                    self.all_managed_element_names
+                    )
+            )
+
+# ------------------------------------------------------------------
+class HW_MSTPServiceMgr_I(_Mngr):
+    def __init__(self, me_names):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('getAllETHService',
+                                          'getAllATMService',
+                                          )
+                       )
+
+    name = property(fget=lambda self: 'CORBA_MSTP_SVC',
+                    doc="""This interface is used to manage MSTP services."""
+                    )
+
+
+# ------------------------------------------------------------------
+class TrafficDescriptorMgr_I(_Mngr):
+    def __init__(self, me_names):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('HW_getAllTrafficDescriptors',))
+
+    name = property(fget=lambda self: 'CORBA_MSTP_TD',
+                    doc="""This interface is used to manage traffic
+                     descriptors and supported in only the MSTP equipment."""
+                    )
+
+    def set_bind(self):
+        m = self.methods[0]
+        self.bind[m] = lambda m=m: tuple(
+            map(lambda name, m=m: self.make_request(m, True, name, 0),
+                self.all_managed_element_names
+                )
+        )
+
+
+# ------------------------------------------------------------------
+class HW_controlPlaneMgr(_Mngr):
+    def __init__(self):
+        super().__init__()
+
+    methods = property(fget=lambda self: ('getAllRoutingAreaNames',
+                                          'getAllRoutingNodeNames',
+                                          'getAllSnppLinks'
+                                          )
+                       )
+
+    name = property(fget=lambda self: 'ControlPlane',
+                    doc="""This interface is used to query details of all 
+                    SNPP links in a routing area according to routing area name."""
+                    )
+
+    def set_bind(self):
+        for i, m in enumerate(self.methods):
+            if i == 0:
+                self.bind[m] = lambda m=m: self.make_request(m, False)
+            elif i == 1:
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        (x for x in self.chain_request_result('getAllRoutingAreaNames'))
+                        )
+                )
+            elif i == 2:
+                self.bind[m] = lambda m=m: tuple(
+                    map(lambda name, m=m: self.make_request(m, True, name, 0),
+                        (x for x in self.chain_request_result('getAllRoutingNodeNames'))
+                        )
+                )
+
+    def set_manager(self):
+        super().set_manager()
+        self.mgr = self.mgr._narrow(HW_controlPlaneMgr_I)
+
+
+# ------------------------------------------------------------------
+class EncapsulationLayerLinkMgr_I(_Mngr):
+    def __init__(self):
+        super().__init__()
+
+    methods = property(fget=lambda self: ('getAllELLinks',))
+
+    name = property(fget=lambda self: 'ELLManagement',
+                    doc="""This interface is used to query information 
+                    about encapsulation layer links (ELLs)."""
+                    )
+
+    def set_bind(self):
+        m = self.methods[0]
+        self.bind[m] = lambda m=m: self.make_request(m, True, 0)
+
+
+# ------------------------------------------------------------------
+class FlowDomainMgr_I(_Mngr):
+
+    def __init__(self):
+        super().__init__()
+
+    methods = property(fget=lambda self: ('getAllFlowDomains',))
+
+    name = property(fget=lambda self: 'FlowdomainManagement',
+                    doc="""This interface is used to query information 
+                    about flow domain fragments and matrix flow domain
+                    fragments. The MSTP equipment is supported only."""
+                    )
+
+    def set_bind(self):
+        m = self.methods[0]
+        self.bind[m] = lambda m=m: self.make_request(m, True, 0)
+
+# ------------------------------------------------------------------
 class MaintenanceMgr(_Mngr):
     def __init__(self, me_names=None):
         super().__init__(me_names)
@@ -279,37 +416,31 @@ class TCProfileMgr(_Mngr):
     )
 
     def set_bind(self):
-        for i, m in enumerate(self.methods):
-            if i == 0:
-                self.bind[m] = lambda m=m: self.make_request(m, True, 0)
+        m = self.methods[0]
+        self.bind[m] = lambda m=m: self.make_request(m, True, 0)
 
 
 # ------------------------------------------------------------------
-class HW_controlPlaneMgr(_Mngr):
-    def __init__(self):
-        super().__init__()
+class  HW_VPNMgr_I(_Mngr):
+    pass
 
-    methods = property(fget=lambda self: ('getAllRoutingAreaNames',
-                                          'getAllSnppLinks'
-                                          )
-                       )
 
-    name = property(fget=lambda self: 'ControlPlane',
-                    doc="""This interface is used to query details of all 
-                    SNPP links in a routing area according to routing area name."""
+# ------------------------------------------------------------------
+class TrailNtwProtMgr_I(_Mngr):
+
+    def __init__(self, me_names=None):
+        super().__init__(me_names)
+
+    methods = property(fget=lambda self: ('getAllTrailNtwProtections', ))
+
+    name = property(fget=lambda self: 'TrailNetworkProtection',
+                    doc="""This interface provides protection for network trails, including tunnels."""
                     )
 
     def set_bind(self):
-        for i, m in enumerate(self.methods):
-            if i == 0:
-                self.bind[m] = lambda m=m: self.make_request(m, False)
-            elif i == 1:
-                self.bind[m] = lambda m=m: tuple(
-                    map(lambda name, m=m: self.make_request(m, True, name, 0),
-                        (x for x in self.chain_request_result('getAllRoutingAreaNames'))
-                        )
+        m = self.methods[0]
+        self.bind[m] = lambda m=m: tuple(
+            map(lambda name, m=m: self.make_request(m, True, name, 0),
+                self.all_managed_element_names
                 )
-
-    def set_manager(self):
-        super().set_manager()
-        self.mgr = self.mgr._narrow(HW_controlPlaneMgr_I)
+        )
